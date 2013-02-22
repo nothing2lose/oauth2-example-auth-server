@@ -181,7 +181,10 @@ $app->post('/authorise', function() use ($server, $app) {
 		echo '<p>The user authorised a request and so would be redirected back to the client...</p>';
 
 		// Generate the redirect URI
-		echo OAuth2\Util\RedirectUri::make($params['redirect_uri'], array('code' => $authCode));
+		echo OAuth2\Util\RedirectUri::make($params['redirect_uri'], array(
+			'code' => $authCode,
+			'state'	=> $params['state']
+		));
 	}
 
 	// The user denied the request so send them back to the client with an error
@@ -190,7 +193,8 @@ $app->post('/authorise', function() use ($server, $app) {
 		echo '<p>The user denied the request and so would be redirected back to the client...</p>';
 		echo OAuth2\Util\RedirectUri::make($params['redirect_uri'], array(
 			'error' => 'access_denied',
-			'error_message' => $server::getExceptionMessage('access_denied')
+			'error_message' => $server::getExceptionMessage('access_denied'),
+			'state'	=> $params['state']
 		));
 	}
 
