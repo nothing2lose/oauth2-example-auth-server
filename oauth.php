@@ -1,42 +1,75 @@
-<?php
+<?php 
 session_start();
 ini_set('display_errors', true);
 error_reporting(-1);
 
 // Include the Composer autoloader
-include 'vendor/autoload.php';
+include './vendor/autoload.php';
 
 // Include the storage models
-include 'model_client.php';
+include './model_client.php';
 include 'model_scope.php';
 include 'model_session.php';
 
 // New Slim app
 $app = new \Slim\Slim();
-
+// use \League\OAuth2\Server\Util\Request;
 // Initiate the Request handler
-$request = new \OAuth2\Util\Request();
+$request = new \League\OAuth2\Server\Util\Request();
 
 // Initiate the auth server with the models
-$server = new \OAuth2\AuthServer(new ClientModel, new SessionModel, new ScopeModel);
+$server = new \League\OAuth2\Server\Authorization(new ClientModel, new SessionModel, new ScopeModel);
 
 // Enable support for the authorization code grant
-$server->addGrantType(new \OAuth2\Grant\AuthCode());
+$server->addGrantType(new \League\OAuth2\Server\Grant\AuthCode());
 
 
 
 
 // Clients will redirect to this address
 $app->get('/', function () use ($server, $app) {
-
+	try {
+		
+	
 	// Tell the auth server to check the required parameters are in the query string
-	$params = $server->checkAuthoriseParams();
+		$params = $server->getGrantType('authorization_code')->checkAuthoriseParams();
+		// Session::put('client_id', $params['client_id']); // client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo
+	    // Session::put('client_details', $params['client_details']); // client_details=User details
+	    // Session::put('redirect_uri', $params['redirect_uri']); // redirect_uri=http://client.dev/signin/redirect
+	    // Session::put('response_type', $params['response_type']); // response_type=code
+	    // Session::put('scopes', $params['scopes']); //scopes=user
+	    
+	    // $_SESSION['client_id'] = $params['client_id']; // client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo
+	    // $_SESSION['client_details'] = $params['client_details']; // client_details=User details
+	    // $_SESSION['redirect_uri'] = $params['redirect_uri']; // redirect_uri=http://client.dev/signin/redirect
+	    // $_SESSION['response_type'] = $params['response_type']; // response_type=code
+	    // $_SESSION['scopes'] = $params['scopes']; //scopes=user
+	    
+	    $_SESSION['params'] = serialize($params);
+	    
+	    // url decoded
+	    // ?client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo&client_details=User details&redirect_uri=http://client.dev/signin/redirect&response_type=code&scopes=user
+	    // url encoded
+	    // ?client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo&client_details=User details&redirect_uri=http%3A%2F%2Fclient.dev%2Fsignin%2Fredirect&response_type=code&scopes=user
+			
+	// 	
+		
+		
+		// Save the verified parameters to the user's session
+		// $_SESSION['params'] = serialize($params);
+	
+		// Redirect the user to sign-in
+		//$app->redirect('/oauth.php/signin');
+		// var_dump($_SESSIONS);
+		return $app->Redirect('/oauth2-example-auth-server/oauth.php/signin');
+	} catch ( Oauth2\Exception\ClientException $e) {
+		echo $e;
+        // Throw an error here which says what the problem is with the
+        //  auth params
 
-	// Save the verified parameters to the user's session
-	$_SESSION['params'] = serialize($params);
-
-	// Redirect the user to sign-in
-	$app->redirect('/oauth.php/signin');
+    } catch (Exception $e) {
+		echo $e;
+	}	 
 
 });
 
@@ -49,7 +82,9 @@ $app->get('/signin', function () {
 	// Check the authorization params are set
 	if ( ! isset($_SESSION['params']))
 	{
-		throw new Exception('Missing auth parameters');
+		var_dump($_SESSION);
+		// throw new Exception('Missing auth parameters');
+		return;
 	}
 
 	// Get the params from the session
@@ -95,14 +130,15 @@ $app->post('/signin', function () use ($app) {
 	{
 		// Add the user ID to the auth params and forward the user to authorise the client
 		$params['user_id'] = 1;
+		// $params['user_id'] = $_SESSION['user_id'];
 		$_SESSION['params'] = serialize($params);
-		$app->redirect('/oauth.php/authorise');
+		$app->redirect('/oauth2-example-auth-server/oauth.php/authorise');
 	}
 
 	// Wrong username/password
 	else
 	{
-		$app->redirect('/oauth.php/signin');
+		$app->redirect('/oauth2-example-auth-server/oauth.php/signin');
 	}
 
 });
@@ -122,9 +158,9 @@ $app->get('/authorise', function () use ($app) {
 
 	// Check the user is signed in
 	if ( ! isset($params['user_id']))
-	{
-		$app->redirect('/oauth.php/signin');
-	}
+	{		
+		$app->redirect('/oauth2-example-auth-server/oauth.php/signin');
+	}	
 	?>
 
 	<h1>Authorise <?php echo $params['client_details']['name']; ?></h1>
@@ -170,32 +206,41 @@ $app->post('/authorise', function() use ($server, $app) {
 	// Check the user is signed in
 	if ( ! isset($params['user_id']))
 	{
-		$app->redirect('/oauth.php/signin');
+		echo "asdfoasdfasdf";
+		return;
+		$app->redirect('/oauth2-example-auth-server/oauth.php/signin');
 	}
 
+	// Check if the client should be automatically approved
+    //$autoApprove = ($params['client_details']['auto_approve'] === '1') ? true : false;
+	$autoApprove = false;
+	
 	// If the user approves the client then generate an authoriztion code
-	if (isset($_POST['approve']))
+	if ( isset($_POST['approve']) || $autoApprove === true)
 	{
-		$authCode = $server->newAuthoriseRequest('user', $params['user_id'], $params);
+		//var_dump($params);
+		
+		$code = $server->getGrantType('authorization_code')->newAuthoriseRequest('user', $params['user_id'], $params);
 
 		echo '<p>The user authorised a request and so would be redirected back to the client...</p>';
 
 		// Generate the redirect URI
-		echo OAuth2\Util\RedirectUri::make($params['redirect_uri'], array(
-			'code' => $authCode,
+		return $app->redirect(\League\OAuth2\Server\Util\RedirectUri::make($params['redirect_uri'], array(
+			'code' => $code,
 			'state'	=> $params['state']
-		));
+		)));
+		
 	}
 
 	// The user denied the request so send them back to the client with an error
 	elseif (isset($_POST['deny']))
 	{
 		echo '<p>The user denied the request and so would be redirected back to the client...</p>';
-		echo OAuth2\Util\RedirectUri::make($params['redirect_uri'], array(
+		return $app->redirect(\League\OAuth2\Server\Util\RedirectUri::make($params['redirect_uri'], array(
 			'error' => 'access_denied',
 			'error_message' => $server::getExceptionMessage('access_denied'),
 			'state'	=> $params['state']
-		));
+		)));
 	}
 
 });

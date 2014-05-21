@@ -5,9 +5,10 @@ class DB {
 	private $conn;
 	private $statement;
 
-	function __construct()
+	public function __construct()
 	{
-		$this->conn = new PDO('mysql:host=localhost;dbname=oauth-test', 'root', 'root');
+		$this->conn = new PDO('mysql:host=127.0.0.1;dbname=oauth', 'test', '1234');
+		
 	}
 
 	function query($sql = '', $params = array())

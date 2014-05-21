@@ -1,58 +1,16 @@
 <?php
 
-class SessionModel implements \OAuth2\Storage\SessionInterface {
+class SessionModel implements \League\OAuth2\Server\Storage\SessionInterface {
 
     private $db;
 
     public function __construct()
     {
-        require_once 'db.php';
+        require_once './db.php';
         $this->db = new DB();
     }
 
-    public function createSession($clientId, $redirectUri, $type = 'user', $typeId = null, $authCode = null, $accessToken = null, $refreshToken = null, $accessTokenExpire = null, $stage = 'requested')
-    {
-        $this->db->query('
-            INSERT INTO oauth_sessions (
-                client_id,
-                redirect_uri,
-                owner_type,
-                owner_id,
-                auth_code,
-                access_token,
-                refresh_token,
-                access_token_expires,
-                stage,
-                first_requested,
-                last_updated
-            )
-            VALUES (
-                :clientId,
-                :redirectUri,
-                :type,
-                :typeId,
-                :authCode,
-                :accessToken,
-                :refreshToken,
-                :accessTokenExpire,
-                :stage,
-                UNIX_TIMESTAMP(NOW()),
-                UNIX_TIMESTAMP(NOW())
-            )', array(
-            ':clientId' =>  $clientId,
-            ':redirectUri'  =>  $redirectUri,
-            ':type' =>  $type,
-            ':typeId'   =>  $typeId,
-            ':authCode' =>  $authCode,
-            ':accessToken'  =>  $accessToken,
-            ':refreshToken' =>  $refreshToken,
-            ':accessTokenExpire'    =>  $accessTokenExpire,
-            ':stage'    =>  $stage
-        ));
-
-        return $this->db->getInsertId();
-    }
-
+   
     public function updateSession($sessionId, $authCode = null, $accessToken = null, $refreshToken = null, $accessTokenExpire = null, $stage = 'requested')
     {
         $this->db->query('
@@ -74,23 +32,72 @@ class SessionModel implements \OAuth2\Storage\SessionInterface {
         ));
     }
 
-    public function deleteSession($clientId, $type, $typeId)
-    {
-        $this->db->query('
-                DELETE FROM oauth_sessions WHERE
+
+
+
+	//// ===== interface
+    public function createSession($clientId, $ownerType, $ownerId) {
+    	$this->db->query('
+            INSERT INTO oauth_sessions (
+                client_id,
+                owner_type,
+                owner_id,
+            )
+            VALUES (
+                :clientId,
+                :ownerType,
+                :ownerId,
+            )', array(
+            ':clientId' =>  $clientId,
+            ':ownerType' =>  $ownerType,
+            ':ownerId'   =>  $ownerId,
+        ));
+
+        return $this->db->getInsertId();
+    }
+
+    
+    public function deleteSession($clientId, $ownerType, $ownerId) {
+    	 $this->db->query('
+                DELETE IF EXISTS FROM oauth_sessions WHERE
                 client_id = :clientId AND
                 owner_type = :type AND
                 owner_id = :typeId',
             array(
                 ':clientId' =>  $clientId,
-                ':type'  =>  $type,
-                ':typeId' =>  $typeId
+                ':type'  =>  $ownerType,
+                ':typeId' =>  $ownerId
             ));
     }
 
-    public function validateAuthCode($clientId, $redirectUri, $authCode)
-    {
-        $result = $this->db->query('
+   
+    public function associateRedirectUri($sessionId, $redirectUri) {
+    	
+    }
+
+   
+    public function associateAccessToken($sessionId, $accessToken, $expireTime) {
+    	
+    }
+
+ 
+    public function associateRefreshToken($accessTokenId, $refreshToken, $expireTime, $clientId) {
+    	
+    }
+
+   
+    public function associateAuthCode($sessionId, $authCode, $expireTime) {
+    	
+    }
+
+   
+    public function removeAuthCode($sessionId) {
+    	
+    }
+
+  
+    public function validateAuthCode($clientId, $redirectUri, $authCode) {
+    	$result = $this->db->query('
                 SELECT * FROM oauth_sessions WHERE
                     client_id = :clientId AND
                     redirect_uri = :redirectUri AND
@@ -109,37 +116,46 @@ class SessionModel implements \OAuth2\Storage\SessionInterface {
         return false;
     }
 
-    public function validateAccessToken($accessToken)
-    {
-        // Not needed for this demo
-        die(var_dump('validateAccessToken'));
+   
+    public function validateAccessToken($accessToken) {
+    	die(var_dump('validateAccessToken'));
     }
 
-    public function getAccessToken($sessionId)
-    {
-        // Not needed for this demo
+ 
+    public function removeRefreshToken($refreshToken) {
+    	
     }
 
-    public function validateRefreshToken($refreshToken, $clientId)
-    {
-        // Not needed for this demo
+ 
+    public function validateRefreshToken($refreshToken, $clientId) {
+    	
     }
 
-    public function updateRefreshToken($sessionId, $newAccessToken, $newRefreshToken, $accessTokenExpires)
-    {
-        // Not needed for this demo
+  
+    public function getAccessToken($accessTokenId) {
+    	
     }
 
-    public function associateScope($sessionId, $scopeId)
-    {
-        $this->db->query('INSERT INTO oauth_session_scopes (session_id, scope_id) VALUE (:sessionId, :scopeId)', array(
+   
+    public function associateAuthCodeScope($authCodeId, $scopeId) {
+    	
+    }
+
+  
+    public function getAuthCodeScopes($oauthSessionAuthCodeId) {
+    	
+    }
+
+  
+    public function associateScope($accessTokenId, $scopeId) {
+    	$this->db->query('INSERT INTO oauth_session_scopes (session_id, scope_id) VALUE (:sessionId, :scopeId)', array(
             ':sessionId'    =>  $sessionId,
             ':scopeId'  =>  $scopeId
         ));
     }
 
-    public function getScopes($accessToken)
-    {
-        // Not needed for this demo
+   
+    public function getScopes($accessToken) {
+    	
     }
 }
