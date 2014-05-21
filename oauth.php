@@ -23,27 +23,13 @@ $server = new \League\OAuth2\Server\Authorization(new ClientModel, new SessionMo
 // Enable support for the authorization code grant
 $server->addGrantType(new \League\OAuth2\Server\Grant\AuthCode());
 
-
-
-
 // Clients will redirect to this address
 $app->get('/', function () use ($server, $app) {
 	try {
 		
 	
-	// Tell the auth server to check the required parameters are in the query string
+	    // Tell the auth server to check the required parameters are in the query string
 		$params = $server->getGrantType('authorization_code')->checkAuthoriseParams();
-		// Session::put('client_id', $params['client_id']); // client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo
-	    // Session::put('client_details', $params['client_details']); // client_details=User details
-	    // Session::put('redirect_uri', $params['redirect_uri']); // redirect_uri=http://client.dev/signin/redirect
-	    // Session::put('response_type', $params['response_type']); // response_type=code
-	    // Session::put('scopes', $params['scopes']); //scopes=user
-	    
-	    // $_SESSION['client_id'] = $params['client_id']; // client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo
-	    // $_SESSION['client_details'] = $params['client_details']; // client_details=User details
-	    // $_SESSION['redirect_uri'] = $params['redirect_uri']; // redirect_uri=http://client.dev/signin/redirect
-	    // $_SESSION['response_type'] = $params['response_type']; // response_type=code
-	    // $_SESSION['scopes'] = $params['scopes']; //scopes=user
 	    
 	    $_SESSION['params'] = serialize($params);
 	    
@@ -52,15 +38,6 @@ $app->get('/', function () use ($server, $app) {
 	    // url encoded
 	    // ?client_id=I6Lh72kTItE6y29Ig607N74M7i21oyTo&client_details=User details&redirect_uri=http%3A%2F%2Fclient.dev%2Fsignin%2Fredirect&response_type=code&scopes=user
 			
-	// 	
-		
-		
-		// Save the verified parameters to the user's session
-		// $_SESSION['params'] = serialize($params);
-	
-		// Redirect the user to sign-in
-		//$app->redirect('/oauth.php/signin');
-		// var_dump($_SESSIONS);
 		return $app->Redirect('/oauth2-example-auth-server/oauth.php/signin');
 	} catch ( Oauth2\Exception\ClientException $e) {
 		echo $e;
@@ -82,9 +59,7 @@ $app->get('/signin', function () {
 	// Check the authorization params are set
 	if ( ! isset($_SESSION['params']))
 	{
-		var_dump($_SESSION);
-		// throw new Exception('Missing auth parameters');
-		return;
+		throw new Exception('Missing auth parameters');
 	}
 
 	// Get the params from the session
@@ -180,10 +155,11 @@ $app->get('/authorise', function () use ($app) {
 	<p>
 		<form method="post" style="display:inline">
 			<input type="submit" name="approve" id="approve" value="Approve">
+			<!-- <input type="hidden" name="grant_type" id="grant_type" value="authorization_code"> -->
 		</form>
 
 		<form method="post" style="display:inline">
-			<input type="submit" name="deny" id="deny" value="Deny">
+			<input type="submit" name="deny" id="deny" value="Deny">			
 		</form>
 	</p>
 
@@ -206,8 +182,6 @@ $app->post('/authorise', function() use ($server, $app) {
 	// Check the user is signed in
 	if ( ! isset($params['user_id']))
 	{
-		echo "asdfoasdfasdf";
-		return;
 		$app->redirect('/oauth2-example-auth-server/oauth.php/signin');
 	}
 
@@ -218,18 +192,16 @@ $app->post('/authorise', function() use ($server, $app) {
 	// If the user approves the client then generate an authoriztion code
 	if ( isset($_POST['approve']) || $autoApprove === true)
 	{
-		//var_dump($params);
 		
-		$code = $server->getGrantType('authorization_code')->newAuthoriseRequest('user', $params['user_id'], $params);
-
+		$code = $server->getGrantType('authorization_code')->newAuthoriseRequest('user', $params['user_id'], $params);		
 		echo '<p>The user authorised a request and so would be redirected back to the client...</p>';
-
+		
 		// Generate the redirect URI
 		return $app->redirect(\League\OAuth2\Server\Util\RedirectUri::make($params['redirect_uri'], array(
-			'code' => $code,
+			'code' => $code, // todo insert expire.. etcs.			
 			'state'	=> $params['state']
 		)));
-		
+			
 	}
 
 	// The user denied the request so send them back to the client with an error

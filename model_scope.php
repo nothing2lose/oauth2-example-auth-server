@@ -1,7 +1,5 @@
 <?php
 
-
-//class ScopeModel implements \OAuth2\Storage\ScopeInterface {
 class ScopeModel implements \League\OAuth2\Server\Storage\ScopeInterface {
 
 	private $db;
