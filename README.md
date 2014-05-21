@@ -3,6 +3,15 @@
 ## Setup
 
 1. Setup a MySQL database and edit db.php with the connection settings
+
+### database name is 'oauth' & created by thephpleague/oauth2-server/sql/mysql.sql
+
+```
+$>mysql -u root -p
+mysql> CREATE USER 'test'@'localhost' IDENTIFIED BY '1234';
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'test'@'localhost' WITH GRANT OPTION;
+```
+
 2. Run the following commands on the database:
 	1. `INSERT INTO oauth_clients (id, secret, name, auto_approve) VALUE ('I6Lh72kTItE6y29Ig607N74M7i21oyTo', 'dswREHV2YJjF7iL5Zr5ETEFBwGwDQYjQ', 'Hello World App', 0);`
 	2. `INSERT INTO oauth_client_endpoints (client_id, redirect_uri) VALUE ('I6Lh72kTItE6y29Ig607N74M7i21oyTo', 'http://client.dev/signin/redirect');`
